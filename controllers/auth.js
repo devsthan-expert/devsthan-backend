@@ -181,90 +181,40 @@ const verifyOtp = async (req, res) => {
 };
 
 
+
 const login = async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, password } = req.body;
 
     // Check if user exists
-    let user = await User.findOne({ email });
-
-    // Generate OTP
-    const generateNumericOTP = (length) => {
-      const digits = '0123456789';
-      let otp = '';
-      for (let i = 0; i < length; i++) {
-        otp += digits[Math.floor(Math.random() * 10)];
-      }
-      return otp;
-    };
-
-    const otp = generateNumericOTP(6);
-    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // Expires in 10 minutes
+    const user = await User.findOne({ email });
 
     if (!user) {
-      // Create new user if email doesn't exist
-      user = new User({
-        email,
-        otp,
-        otpExpiresAt,
-      });
-      await user.save();
-
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "Welcome to Devsthan Expert - Verify Your Account",
-        text: `Hello,\n\nYour account has been created. To verify your account, please use the following OTP:\n\nOTP: ${otp}\n\nThis OTP will expire in 10 minutes. Please do not share this OTP with anyone.\n\nBest regards,\nDevsthan Expert`,
-      };
-
-      // Send email
-      transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-          console.error("Error sending email:", error);
-          return res.status(500).json({ error: "Error sending OTP email." });
-        }
-        console.log("Email sent:", info.response);
-      });
-
-      return res.status(201).json({
-        success: true,
-        message: "Account created and OTP sent. Please verify to continue.",
-        email,
-      });
-    } else {
-      // If user exists, update OTP and expiration
-      user.otp = otp;
-      user.otpExpiresAt = otpExpiresAt;
-      await user.save();
-
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "Verify Your Login - OTP",
-        text: `Hello ${user.name},\n\nTo verify your login, please use the following OTP:\n\nOTP: ${otp}\n\nThis OTP will expire in 10 minutes. Please do not share this OTP with anyone.\n\nBest regards,\nDevsthan Expert`,
-      };
-
-      // Send email
-      transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-          console.error("Error sending email:", error);
-          return res.status(500).json({ error: "Error sending OTP email." });
-        }
-        console.log("Email sent:", info.response);
-      });
-
-      return res.status(200).json({
-        success: true,
-        message: "OTP sent. Please verify to continue.",
-        email,
+      return res.status(404).json({
+        success: false,
+        message: "User not found. Please create an account to continue.",
       });
     }
+
+    // Check password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid password. Please try again.",
+      });
+    }
+
+    // User exists and password is valid
+    return res.status(200).json({
+      success: true,
+      message: "Login successful. User verified.",
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error("Error during login:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
-
 
 
 const getUser = async (req, res) => {
