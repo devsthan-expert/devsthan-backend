@@ -2,26 +2,46 @@ const mongoose = require('mongoose');
 
 const tourDetailsSchema = new mongoose.Schema({
   uuid: { type: String, default: null },
-  isStandard:{type:Boolean,default:false},
-  isDeluxe:{type:Boolean,default:false},
-  metaTitle:{type:String,default:null},
-  metaDescription:{type:String,default:null},
-  isPremium:{type:Boolean,default:false},
+  isStandard: { type: Boolean, default: false },
+  isDeluxe: { type: Boolean, default: false },
+  minPeople: {
+    enabled: { type: Boolean, default: false },
+    people: { type: Number, default: 0 },
+
+  },
+  groupSize:
+    { type: String },
+  isPremium: { type: Boolean, default: false },
   name: { type: String, default: null },
   overview: { type: String, default: null },
   location: { type: String, default: null },
   duration: { type: Number },
   transportation: { type: Boolean },
   meals: { type: Boolean, },
-  activities: { type: Boolean, default: false},
+  activities: { type: Boolean, default: false },
   hotel: { type: Boolean, },
   siteSeen: { type: Boolean, },
   welcomeDrinks: {
     type: Boolean,
   },
-  groupSize: { type: String },
+  groupSizes: [
+    {
+      size: { type: String, }, // Example: "1-10", "1-15", etc.
+      car: {
+        name: { type: String, }, // Car name
+        departure: { type: String, }, // Departure location
+        arrival: { type: String, }, // Arrival location
+        category: { type: String, }, // Car category
+        maxPeople: { type: Number, }, // Max people allowed
+        description: { type: String }, // Car description
+        time: { type: String }, // Travel time
+        photos: { type: [String], default: [] }, // Array of image URLs
+      },
+    },
+  ],
+  
   termsAndConditions: { type: String },
-
+  languages: { type: String },
   availableDates: { type: String },
   departureDetails: { type: String },
   knowBeforeYouGo: { type: String },
@@ -33,6 +53,29 @@ const tourDetailsSchema = new mongoose.Schema({
   state: { type: String },
   destinationId: { type: String },
   categories: [{ type: String }],
+  partialPayment: {
+    enabled: { type: Boolean, default: false },
+    amount: { type: Number, default: 0 },
+
+  },
+  metaTitle: { type: String },
+  metaDescription: { type: String },
+  metaKeywords: { type: String }, // Comma-separated keywords
+  canonicalUrl: { type: String },
+
+  openGraph: {
+    title: { type: String,},
+    description: { type: String },
+    url: { type: String },
+
+    type: { type: String, default: "website" },
+  },
+
+  twitter: {
+    title: { type: String,},
+    description: { type: String },
+
+  },
   // Fixed Dates details
   fixedDates: {
     enabled: { type: Boolean, default: false },
@@ -49,12 +92,20 @@ const tourDetailsSchema = new mongoose.Schema({
   },
 
   standardDetails: {
-    pricing: [
+    seasons: [
       {
-        day: Number,
-        price: Number,
-        rooms: Number,
-        person: Number
+        isAvailable: { type: Boolean, default: false },
+        seasonName: { type: String },
+        startDate: { type: String },
+        endDate: { type: String },
+        pricing: [
+          {
+            day: { type: Number, default: 1 },
+            price: { type: Number, default: 0 },
+            rooms: { type: Number, default: 0 },
+            person: { type: Number, default: 1 },
+          }
+        ]
       }
     ],
     cancellationPolicy: { type: String },
@@ -122,34 +173,40 @@ const tourDetailsSchema = new mongoose.Schema({
             },
           }
         },
-        activity: {
-            isIncluded: { type: Boolean, default: false },
+        activity: [{
+          isIncluded: { type: Boolean, default: false },
           name: { type: String, default: "" },
           description: { type: String, default: "" },
           price: { type: String, default: "" },
           photos: [{ type: String, default: [] }]
-        },
+        }],
 
-        siteSeen: {
+        siteSeen: [{
           isAvailable: { type: Boolean, default: false },
           name: { type: String, default: "" },
           description: { type: String, default: "" },
           photos: [{ type: String, default: [] }]
-        },
+        }],
         transportation: {
           isIncluded: { type: Boolean, default: false },
-          car: {
-            isIncluded: { type: Boolean, default: false },
-            name: { type: String, default: "" },
-            category: { type: String, default: "" },
-            description: { type: String, default: "" },
-            departureTime: { type: String, default: "" },
-            photos: [{ type: String, default: [] }],
-            price: { type: Number },
-            maxPeople: { type: Number },
-            departureFrom: { type: String, default: "" },
-            arrivalTo: { type: String, default: "" },
-          },
+          carGroups:[
+            {
+              groupSize: { type: String, default: "" },
+              car: {
+                isIncluded: { type: Boolean, default: false },
+                name: { type: String, default: "" },
+                category: { type: String, default: "" },
+                description: { type: String, default: "" },
+                departureTime: { type: String, default: "" },
+                photos: [{ type: String, default: [] }],
+                price: { type: Number },
+                maxPeople: { type: Number },
+                departureFrom: { type: String, default: "" },
+                arrivalTo: { type: String, default: "" },
+              },
+            },
+          ],
+        
           bus: {
             isIncluded: { type: Boolean, default: false },
             name: { type: String, default: "" },
@@ -191,12 +248,20 @@ const tourDetailsSchema = new mongoose.Schema({
   },
 
   deluxeDetails: {
-    pricing: [
+    seasons: [
       {
-        day: Number,
-        price: Number,
-        rooms: Number,
-        person: Number
+        isAvailable: { type: Boolean, default: false },
+        seasonName: { type: String },
+        startDate: { type: String },
+        endDate: { type: String },
+        pricing: [
+          {
+            day: { type: Number, default: 1 },
+            price: { type: Number, default: 0 },
+            rooms: { type: Number, default: 0 },
+            person: { type: Number, default: 1 },
+          }
+        ]
       }
     ],
     cancellationPolicy: { type: String },
@@ -264,20 +329,20 @@ const tourDetailsSchema = new mongoose.Schema({
             },
           }
         },
-        activity: {
-            isIncluded: { type: Boolean, default: false },
+        activity: [{
+          isIncluded: { type: Boolean, default: false },
           name: { type: String, default: "" },
           description: { type: String, default: "" },
           price: { type: String, default: "" },
           photos: [{ type: String, default: [] }]
-        },
+        }],
 
-        siteSeen: {
+        siteSeen: [{
           isAvailable: { type: Boolean, default: false },
           name: { type: String, default: "" },
           description: { type: String, default: "" },
           photos: [{ type: String, default: [] }]
-        },
+        }],
         transportation: {
           isIncluded: { type: Boolean, default: false },
           car: {
@@ -334,12 +399,20 @@ const tourDetailsSchema = new mongoose.Schema({
   },
 
   premiumDetails: {
-    pricing: [
+    seasons: [
       {
-        day: Number,
-        price: Number,
-        rooms: Number,
-        person: Number
+        isAvailable: { type: Boolean, default: false },
+        seasonName: { type: String },
+        startDate: { type: String },
+        endDate: { type: String },
+        pricing: [
+          {
+            day: { type: Number, default: 1 },
+            price: { type: Number, default: 0 },
+            rooms: { type: Number, default: 0 },
+            person: { type: Number, default: 1 },
+          }
+        ]
       }
     ],
     cancellationPolicy: { type: String },
@@ -408,20 +481,20 @@ const tourDetailsSchema = new mongoose.Schema({
             },
           }
         },
-        activity: {
-            isIncluded: { type: Boolean, default: false },
+        activity: [{
+          isIncluded: { type: Boolean, default: false },
           name: { type: String, default: "" },
           description: { type: String, default: "" },
           price: { type: String, default: "" },
           photos: [{ type: String, default: [] }]
-        },
+        }],
 
-        siteSeen: {
+        siteSeen: [{
           isAvailable: { type: Boolean, default: false },
           name: { type: String, default: "" },
           description: { type: String, default: "" },
           photos: [{ type: String, default: [] }]
-        },
+        }],
         transportation: {
           isIncluded: { type: Boolean, default: false },
           car: {
@@ -434,7 +507,7 @@ const tourDetailsSchema = new mongoose.Schema({
             price: { type: Number },
             departureFrom: { type: String, default: "" },
             arrivalTo: { type: String, default: "" },
-            maxPeople:{ type: Number},
+            maxPeople: { type: Number },
           },
           bus: {
             isIncluded: { type: Boolean, default: false },
